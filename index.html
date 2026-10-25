@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bambu Filament Advisor</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #fff; --ink: #1d2129; --muted: #6b7280; --line: #dfe3ea; --accent: #00ae42;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14161a; --panel: #1e2127; --ink: #e6e8ec; --muted: #9aa1ad; --line: #333842; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--ink); display: flex; flex-direction: column; height: 100vh; }
+  header { padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); display: flex; gap: 16px; align-items: baseline; }
+  header h1 { font-size: 17px; margin: 0; }
+  header span { color: var(--muted); }
+  /* Controls column on the left, visualizations on the right. */
+  main { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 12px; padding: 12px; flex: 1; min-height: 0; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; min-height: 0; }
+  #overviewBar { margin: 12px 12px 0; flex: none; }
+  #panelViz { display: flex; flex-direction: column; gap: 12px; overflow: auto; min-height: 0; }
+  .vizPanel { flex: none; }
+  /* Two charts plus a fixed column for the slider. That column is present in every panel, even when it's
+     empty there, so the charts in the three panels stay neatly aligned with each other. */
+  .plotRow { display: grid; grid-template-columns: 1fr 1fr 56px; gap: 12px; }
+  .sliderCol { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; }
+  #sliceL { writing-mode: vertical-lr; direction: rtl; appearance: slider-vertical; -webkit-appearance: slider-vertical; width: 24px; flex: 1; min-height: 120px; padding: 0; }
+  #sliceLabel { text-align: center; }
+  .plot h3 { font-size: 11px; margin: 0 0 4px; color: var(--muted); font-weight: 600; }
+  .out { opacity: .16; }
+  .gamut { fill: none; stroke: var(--muted); stroke-width: 1; stroke-dasharray: 2 2; pointer-events: none; }
+  #heatbar { color: var(--muted); font-size: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+  #legend { display: inline-flex; align-items: center; gap: 6px; }
+  #legendBar { display: inline-block; width: 120px; height: 10px; border: 1px solid var(--line); }
+  .plot h2 { font-size: 13px; margin: 0 0 4px; color: var(--muted); font-weight: 600; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { fill: var(--muted); font-size: 10px; }
+  svg .grid { stroke: var(--line); stroke-width: 1; fill: none; }
+  svg .axis { stroke: var(--muted); stroke-width: 1; }
+  .pt { stroke: rgba(0,0,0,.55); stroke-width: 1; cursor: pointer; }
+  .pt.hl { stroke: var(--ink); stroke-width: 2.5; }
+  .adv { stroke: #000; stroke-width: 2; stroke-dasharray: 3 2; cursor: pointer; }
+  .adv.hl { stroke-width: 3.5; }
+  .cand { fill: none; stroke-width: 1.5; stroke-dasharray: 3 2; cursor: pointer; pointer-events: all; }
+  .cand.hl { stroke-width: 3; }
+  .halo { fill: none; stroke: rgba(128,128,128,.35); stroke-width: 3.5; pointer-events: none; }
+  #panelControls { display: flex; flex-direction: column; overflow-y: auto; }
+  .sec-h { font-size: 11px; margin: 0 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+  #materials { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+  #materials button.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  #materials button[data-materials-toggle] { background: rgba(128,128,128,.22); }
+  #panelControls hr { border: none; border-top: 1px solid var(--line); margin: 8px 0; width: 100%; }
+  #controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
+  #advanced summary { cursor: pointer; user-select: none; }
+  #advancedBody { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+  #advancedBody #sync { flex-basis: 100%; }
+  #controls input[type=number] { width: 56px; }
+  #search { width: 100%; margin-bottom: 8px; }
+  button, input, select { font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  /* direction: rtl puts the scrollbar on the left; the content itself stays plain left-to-right. */
+  #catalog { overflow: auto; flex: 1; min-height: 45vh; direction: rtl; }
+  #catalog > * { direction: ltr; }
+  .series h3 { font-size: 12px; margin: 10px 0 4px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; display: flex; justify-content: space-between; }
+  .series h3 button { font-size: 11px; padding: 0 6px; }
+  .series h3 button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .fold { cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 4px; }
+  .fold .arrow::before { content: "▾"; }
+  .series.collapsed .fold .arrow::before { content: "▸"; }
+  .fold em { font-style: normal; text-transform: none; letter-spacing: 0; opacity: .8; }
+  .series.collapsed .body { display: none; }
+  #catalog.searching .series.collapsed .body { display: block; }
+  .series.inactive .sw { opacity: .55; }
+  .sw { display: inline-flex; flex-direction: column; align-items: center; width: 64px; margin: 2px; padding: 3px; border: 2px solid transparent; border-radius: 6px; cursor: pointer; background: none; text-align: center; }
+  .sw i { display: block; width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(0,0,0,.35); }
+  .sw span { font-size: 10px; line-height: 1.1; margin-top: 3px; color: var(--muted); }
+  .sw.on { border-color: var(--accent); }
+  .sw.on span { color: var(--ink); font-weight: 600; }
+  .sw.sug { border-style: dashed; border-color: var(--accent); }
+  #importBox { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+  #importBox textarea { width: 100%; resize: vertical; font: 12px/1.3 ui-monospace, monospace; color: inherit; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px; }
+  #importResult { color: var(--muted); font-size: 12px; white-space: pre-line; margin-top: 4px; }
+  #importSaveStatus { color: var(--muted); font-size: 11px; }
+  #advice ol { margin: 4px 0 0; padding-left: 22px; }
+  #advice li { margin: 2px 0; cursor: pointer; }
+  #advice li i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 4px; border: 1px solid rgba(0,0,0,.4); }
+  #advice { margin-bottom: 4px; }
+  #advice .ign { border: 0; background: none; padding: 0 3px; margin-left: 6px; cursor: pointer; opacity: .45; font-size: 12px; }
+  #advice li:hover .ign, #advice .ign:focus-visible { opacity: 1; }
+  #advice .ignHead { margin-top: 6px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  #advice .ignList { margin: 2px 0 0; padding-left: 22px; color: var(--muted); }
+  #advice .ignList li { cursor: default; text-decoration: line-through; }
+  #advice .ignList li .ign { text-decoration: none; display: inline-block; }
+  /* Now lives in its own panel right under the title, so it no longer needs a separator of its own. */
+  /* Chips sit at the x-position of their own color on the bar underneath; on overlap they stack upward. */
+  #rainbowStrip { position: relative; color: var(--muted); font-size: 12px; }
+  .chip { position: absolute; width: 26px; height: 26px; border-radius: 4px; cursor: pointer; box-sizing: border-box; }
+  .chip.owned { border: 1px solid rgba(0,0,0,.55); }
+  .chip.adv { border: 2px dashed #000; }
+  .chip.hl { box-shadow: 0 0 0 2px var(--ink); z-index: 1; }
+  /* Two separate bars with a light outline, so the empty gap between them stands out clearly. */
+  #rainbowBars { display: flex; }
+  #rainbowHue { width: 70%; }
+  #rainbowGray { width: 25%; margin-left: 5%; }
+  .refBar { height: 16px; border: 1px solid var(--line); border-radius: 4px; background-origin: border-box; }
+  @media (max-width: 900px) { body { height: auto; } main { grid-template-columns: 1fr; } .plotRow { grid-template-columns: 1fr 56px; } #catalog { max-height: 60vh; } }
+</style>
+</head>
+<body>
+<header><h1>Bambu Filament Advisor</h1><span>Which additional filament colors best cover the color space?</span></header>
+<section id="overviewBar">
+  <div id="rainbowBlock">
+    <div id="rainbowStrip"></div>
+    <div id="rainbowBars">
+      <div class="refBar" id="rainbowHue" title="Hue wheel: the position of each chip above"></div>
+      <div class="refBar" id="rainbowGray" title="White through gray to black"></div>
+    </div>
+  </div>
+</section>
+<main>
+  <section id="panelControls">
+    <h3 class="sec-h">Material</h3>
+    <div id="materials" title="Material (one active at a time)"></div>
+    <hr>
+    <h3 class="sec-h">Advice</h3>
+    <div id="controls">
+      <label>Count <input id="count" type="number" min="0" value="5"></label>
+      <button id="advise" class="primary">Advise</button>
+      <button id="accept" title="Add all advice to the selection">Accept</button>
+      <button id="clear">Clear</button>
+    </div>
+    <div id="advice"></div>
+    <hr>
+    <h3 class="sec-h">Colors</h3>
+    <input id="search" type="search" placeholder="Search color…">
+    <div id="catalog"></div>
+    <hr>
+    <h3 class="sec-h" title="The textbox extracts Bambu filament product codes, e.g. from E-mail order confirmations.">Inventory</h3>
+    <div id="importBox">
+      <textarea id="importText" rows="3" placeholder="Paste text with Bambu product codes here (e.g. 10300, A00-K0, GFA01-B0)…"></textarea>
+      <div>
+        <button id="import">Import</button>
+        <button id="importSave" type="button" title="Save the text in this box, in this browser">Save</button>
+        <button id="importLoad" type="button" title="Retrieve the saved text" disabled>Load</button>
+      </div>
+      <div id="importResult"></div>
+      <div id="importSaveStatus"></div>
+    </div>
+    <hr>
+    <details id="advanced">
+      <summary class="sec-h">Options</summary>
+      <div id="advancedBody">
+        <label>Show candidates <input type="checkbox" id="showCand" checked></label>
+        <label>Hidden dimension <select id="heatMode"><option value="max">maximum (worst spot)</option><option value="mean">average</option></select></label>
+        <label>Algorithm <select id="algorithm" title="Greedy: fast, single pass. Multi-start: slower — several randomized attempts, best one kept, plus a pairwise-swap cleanup. Simulated annealing: slower — random moves, occasionally accepting a worse one to escape dead ends, cooling down over the run. K-center: minimizes the worst gap instead of the total gap."><option value="greedy" selected>Greedy</option><option value="multistart">Greedy + multi-start</option><option value="annealing">Simulated annealing</option><option value="kcenter">K-center</option></select></label>
+        <label>Range <select id="range" title="Grid range for optimization and heatmap"><option value="full">full (sRGB)</option><option value="ext" selected>full (sRGB) + 20%</option></select></label>
+        <label>Distance metric <select id="metric"><option value="de2000">ΔE2000</option><option value="de76">ΔE76</option></select></label>
+        <button id="sync" title="Fetch the current Bambu color table">Sync filament</button>
+      </div>
+    </details>
+  </section>
+  <div id="panelViz">
+    <section class="vizPanel">
+      <h3 class="sec-h">Colors in sRGB color space</h3>
+      <div class="plotRow">
+        <div class="plot"><h2>a* (green–red) vs b* (blue–yellow)</h2><svg id="plotAB" viewBox="0 0 400 400"></svg></div>
+        <div class="plot"><h2>chroma C* vs lightness L*</h2><svg id="plotCL" viewBox="0 0 400 400"></svg></div>
+        <div class="sliderCol"></div>
+      </div>
+    </section>
+    <section class="vizPanel">
+      <h3 class="sec-h">Coverage in sRGB color space</h3>
+      <div id="heatbar">
+        Distance to nearest color.
+        <span id="legend">near <i id="legendBar"></i> far: <b id="legendMax">–</b></span>
+      </div>
+      <div class="plotRow">
+        <div class="plot"><h2>a* vs b*</h2><svg id="heatAB" viewBox="0 0 400 400"></svg></div>
+        <div class="plot"><h2>chroma C* vs lightness L*</h2><svg id="heatCL" viewBox="0 0 400 400"></svg></div>
+        <div class="sliderCol"></div>
+      </div>
+    </section>
+    <section class="vizPanel" id="sliceBlock">
+      <h3 class="sec-h">3D slice in sRGB color space</h3>
+      <div class="plotRow">
+        <div class="plot">
+          <h3>Distance to nearest color</h3>
+          <svg id="plotSlice" viewBox="0 0 400 400"></svg>
+        </div>
+        <div class="plot">
+          <h3>sRGB colors at this level</h3>
+          <svg id="plotSliceColor" viewBox="0 0 400 400"></svg>
+        </div>
+        <div class="sliderCol" id="sliceControls">
+          <button id="slicePlay" type="button" title="Play (10 seconds bottom to top, looping)">▶</button>
+          <input type="range" id="sliceL" min="0" max="100" value="50" step="1" title="Lightness L* of the slice (band ± 8)">
+          <span id="sliceLabel"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+<script src="data/catalog.js"></script>
+<script src="src/catalogsync.js"></script>
+<script src="src/filamentadvisor.js"></script>
+</body>
+</html>

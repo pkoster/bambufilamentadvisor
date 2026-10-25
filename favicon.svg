@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Simplified "Colors in sRGB color space" plot: the a*/b* hue disc, fading to neutral in the middle,
+       with the a*/b* axes and a few filament points. -->
+  <defs>
+    <radialGradient id="neutral" cx="32" cy="32" r="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity=".95"/>
+      <stop offset=".25" stop-color="#fff" stop-opacity=".75"/>
+      <stop offset=".8" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <path fill="#ee3a6e" d="M32 32L59.72 43.48A30 30 0 0 0 59.72 20.52Z"/>
+  <path fill="#f58a1f" d="M32 32L59.72 20.52A30 30 0 0 0 43.48 4.28Z"/>
+  <path fill="#f2d21b" d="M32 32L43.48 4.28A30 30 0 0 0 20.52 4.28Z"/>
+  <path fill="#7bc62d" d="M32 32L20.52 4.28A30 30 0 0 0 4.28 20.52Z"/>
+  <path fill="#1fae6a" d="M32 32L4.28 20.52A30 30 0 0 0 4.28 43.48Z"/>
+  <path fill="#1fb5c9" d="M32 32L4.28 43.48A30 30 0 0 0 20.52 59.72Z"/>
+  <path fill="#3a63e0" d="M32 32L20.52 59.72A30 30 0 0 0 43.48 59.72Z"/>
+  <path fill="#9a4fd6" d="M32 32L43.48 59.72A30 30 0 0 0 59.72 43.48Z"/>
+  <circle cx="32" cy="32" r="30" fill="url(#neutral)"/>
+  <path d="M32 3V61M3 32H61" stroke="#000" stroke-opacity=".45" stroke-width="2.5"/>
+  <g stroke="#fff" stroke-width="3">
+    <circle cx="47" cy="22" r="5" fill="#f58a1f"/>
+    <circle cx="17" cy="25" r="5" fill="#1fae6a"/>
+    <circle cx="36" cy="49" r="5" fill="#3a63e0"/>
+  </g>
+</svg>
