@@ -17,6 +17,8 @@
   header { padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); display: flex; gap: 16px; align-items: baseline; }
   header h1 { font-size: 17px; margin: 0; }
   header span { color: var(--muted); }
+  header a { margin-left: auto; color: var(--muted); text-decoration: none; }
+  header a:hover { color: var(--ink); text-decoration: underline; }
   /* Controls column on the left, visualizations on the right. */
   main { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 12px; padding: 12px; flex: 1; min-height: 0; }
   section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; min-height: 0; }
@@ -111,7 +113,7 @@
 </style>
 </head>
 <body>
-<header><h1>Bambu Filament Advisor</h1><span>Which additional filament colors best cover the color space?</span></header>
+<header><h1>Bambu Filament Advisor</h1><span>Which additional filament colors best cover the color space?</span><a href="https://github.com/pkoster/bambufilamentadvisor#readme" target="_blank" rel="noopener" title="Documentation and source on GitHub">About ↗</a></header>
 <section id="overviewBar">
   <div id="rainbowBlock">
     <div id="rainbowStrip"></div>
