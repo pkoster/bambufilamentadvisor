@@ -6,6 +6,8 @@ cover the color space, given the filaments I already own?**
 You pick the filaments you have; the app places them in the CIE Lab color space, finds the gaps, and
 recommends the colors from Bambu's catalog that close those gaps the most.
 
+Try and use it at [pkoster.github.io/bambufilamentadvisor](https://pkoster.github.io/bambufilamentadvisor/)!
+
 ![Screenshot of Bambu Filament Advisor](assets/screenshot.png)
 
 ## What it does
